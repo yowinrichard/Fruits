@@ -1,0 +1,720 @@
+var url = '@Url.Content("~/")' + "EOMS/CourseDevelopment/CourseDownlaod?AcademicYearId=" + AcademicYearId + "&strStaffId=" + StaffId ;
+            window.open(url, '_blank');+
+
+public MemoryStream ToExport(List<ClsMarksEntry> lstStudent)
+
+     //  private byte[] ToExport(List<ClsMarksEntry> lstStudent)
+        {
+            int CGPAEligible = 0;
+            string CGPAAvg = "0";
+            MemoryStream output = new MemoryStream();
+            try
+            {
+
+                if (lstStudent.Any())
+                {
+                    CGPAEligible = lstStudent.Where(x => x.strTotalArrear == "0").Count();
+                    CGPAAvg = lstStudent.Where(x => x.strTotalArrear == "0").Average(x => decimal.Parse(x.strCGPA)).ToString("#.###");
+                }
+
+
+                //http://www.codeproject.com/Tips/406704/Export-DataTable-to-Excel-with-Formatting-in-Cshar
+
+                //Create new Excel workbook
+                var workbook = new HSSFWorkbook();
+
+                //Create new Excel sheet
+                var sheet = workbook.CreateSheet();
+
+                ////(Optional) set the width of the columns
+
+                ////Get all the properties
+                //PropertyInfo[] Props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                //PropertyInfo[] Props1 = typeof(T).GetProperties();
+
+                #region Cell Styles
+
+                #region font
+
+                var bold16font = workbook.CreateFont();
+                bold16font.FontHeightInPoints = 16;
+                bold16font.FontName = "Arial";
+                bold16font.Boldweight = (short)FontBoldWeight.Bold;
+
+                var bold12font = workbook.CreateFont();
+                bold12font.FontHeightInPoints = 12;
+                bold12font.FontName = "Arial";
+                bold12font.Boldweight = (short)FontBoldWeight.Bold;
+
+                var noraml12font = workbook.CreateFont();
+                noraml12font.FontHeightInPoints = 12;
+                noraml12font.FontName = "Arial";
+                noraml12font.Boldweight = (short)FontBoldWeight.Normal;
+
+                # endregion
+
+
+                #region InstitutionLabel Cell Style
+                var InstitutionLabelLabelCellStyle = workbook.CreateCellStyle();
+                InstitutionLabelLabelCellStyle.Alignment = HorizontalAlignment.Center;
+                InstitutionLabelLabelCellStyle.SetFont(bold16font);
+                #endregion
+
+
+                #region subtitile Cell Style
+                var subTitleLabelCellStyle = workbook.CreateCellStyle();
+                subTitleLabelCellStyle.Alignment = HorizontalAlignment.Center;
+                subTitleLabelCellStyle.SetFont(bold12font);
+                #endregion
+
+
+                #region subtitilehead Cell Style
+                var subtitilehead = workbook.CreateCellStyle();
+                subtitilehead.Alignment = HorizontalAlignment.Left;
+                subtitilehead.SetFont(bold12font);
+                #endregion
+
+
+                #region HeaderLabel Cell Style
+                var headerLabelCellStyle = workbook.CreateCellStyle();
+                headerLabelCellStyle.Alignment = HorizontalAlignment.Center;
+                headerLabelCellStyle.BorderTop = BorderStyle.Thin;
+                headerLabelCellStyle.BorderBottom = BorderStyle.Thin;
+                headerLabelCellStyle.BorderLeft = BorderStyle.Thin;
+                headerLabelCellStyle.BorderRight = BorderStyle.Thin;
+                //  headerLabelCellStyle.FillBackgroundColor = NPOI.HSSF.Util.HSSFColor.Red.Index;
+                headerLabelCellStyle.SetFont(bold12font);
+                #endregion
+
+                #region RightAligned Cell Style
+                var rightAlignedCellStyle = workbook.CreateCellStyle();
+                rightAlignedCellStyle.Alignment = HorizontalAlignment.Right;
+                rightAlignedCellStyle.SetFont(noraml12font);
+                #endregion
+
+
+                #region LeftAligned Cell Style
+                var leftAlignedCellStyle = workbook.CreateCellStyle();
+                leftAlignedCellStyle.Alignment = HorizontalAlignment.Left;
+                leftAlignedCellStyle.BorderTop = BorderStyle.Thin;
+                leftAlignedCellStyle.BorderBottom = BorderStyle.Thin;
+                leftAlignedCellStyle.BorderLeft = BorderStyle.Thin;
+                leftAlignedCellStyle.BorderRight = BorderStyle.Thin;
+                leftAlignedCellStyle.SetFont(noraml12font);
+                #endregion
+
+
+                #region Currency Cell Style
+                var currencyCellStyle = workbook.CreateCellStyle();
+                currencyCellStyle.Alignment = HorizontalAlignment.Right;
+                var formatId = HSSFDataFormat.GetBuiltinFormat("$#,##0.00");
+                if (formatId == -1)
+                {
+                    var newDataFormat = workbook.CreateDataFormat();
+                    currencyCellStyle.DataFormat = newDataFormat.GetFormat("$#,##0.00");
+                }
+                else
+                    currencyCellStyle.DataFormat = formatId;
+                #endregion
+
+                #region Detail Subtotal Style
+                var detailSubtotalCellStyle = workbook.CreateCellStyle();
+                detailSubtotalCellStyle.BorderTop = BorderStyle.Thin;
+                detailSubtotalCellStyle.BorderBottom = BorderStyle.Thin;
+                var detailSubtotalFont = workbook.CreateFont();
+                detailSubtotalFont.Boldweight = (short)FontBoldWeight.Bold;
+                detailSubtotalCellStyle.SetFont(detailSubtotalFont);
+                #endregion
+
+                #region Detail Currency Subtotal Style
+                var detailCurrencySubtotalCellStyle = workbook.CreateCellStyle();
+                detailCurrencySubtotalCellStyle.BorderTop = BorderStyle.Thin;
+                detailCurrencySubtotalCellStyle.BorderBottom = BorderStyle.Thin;
+                var detailCurrencySubtotalFont = workbook.CreateFont();
+                detailCurrencySubtotalFont.Boldweight = (short)FontBoldWeight.Bold;
+                detailCurrencySubtotalCellStyle.SetFont(detailCurrencySubtotalFont);
+                formatId = HSSFDataFormat.GetBuiltinFormat("$#,##0.00");
+                if (formatId == -1)
+                {
+                    var newDataFormat = workbook.CreateDataFormat();
+                    detailCurrencySubtotalCellStyle.DataFormat = newDataFormat.GetFormat("$#,##0.00");
+                }
+                else
+                    detailCurrencySubtotalCellStyle.DataFormat = formatId;
+                #endregion
+                #endregion
+
+
+                //Create a header row
+
+                int rowNumber = 1;
+                IRow headerRow = sheet.CreateRow(rowNumber);
+                ICell cell = headerRow.CreateCell(0);
+
+                cell.SetCellValue(Convert.ToString(HttpContext.Session["InstitutionName"]));
+                cell.CellStyle = InstitutionLabelLabelCellStyle;
+                CellRangeAddress region = new CellRangeAddress(rowNumber, rowNumber, 0, 7);
+                sheet.AddMergedRegion(region);
+
+
+
+                rowNumber++;
+                headerRow = sheet.CreateRow(rowNumber);
+                cell = headerRow.CreateCell(0);
+
+                cell.SetCellValue("AU Internal Assessment");
+                cell.CellStyle = InstitutionLabelLabelCellStyle;
+                region = new CellRangeAddress(rowNumber, rowNumber, 0, 7);
+                sheet.AddMergedRegion(region);
+
+
+
+                rowNumber += 2;
+                headerRow = sheet.CreateRow(rowNumber);
+
+                int icolumn = 0;
+                cell = headerRow.CreateCell(0);
+                cell.SetCellValue("No. of Students Eligible for CGPA : " + CGPAEligible);
+                cell.CellStyle = InstitutionLabelLabelCellStyle;
+                region = new CellRangeAddress(rowNumber, rowNumber, 0, 2);
+                sheet.AddMergedRegion(region);
+
+                cell = headerRow.CreateCell(3);
+                cell.SetCellValue("CGPA Average : " + CGPAAvg);
+                cell.CellStyle = InstitutionLabelLabelCellStyle;
+                region = new CellRangeAddress(rowNumber, rowNumber, 3, 5);
+                sheet.AddMergedRegion(region);
+
+
+                rowNumber += 2;
+                //  Set the column names in the header row
+                headerRow = sheet.CreateRow(rowNumber);
+
+                icolumn = 1;
+                cell = headerRow.CreateCell(0);
+                cell.SetCellValue("S.No");
+                cell.CellStyle = headerLabelCellStyle;
+
+                List<string> lstHeader = new List<string>() { "Registration Number", "Student Name", "Year", "Section", "PGPA","CGPA", "Standing Arrears", "History of Arrears" };
+
+
+                foreach (string Header in lstHeader)
+                {
+
+
+                    cell = headerRow.CreateCell(icolumn);
+                    cell.SetCellValue(Header);
+                    cell.CellStyle = headerLabelCellStyle;
+                    icolumn = icolumn + 1;
+
+                }
+
+
+
+
+
+                rowNumber++;
+                int sNo = 1;
+                foreach (ClsMarksEntry dr in lstStudent)
+                {
+                    var row = sheet.CreateRow(rowNumber++);
+                    icolumn = 0;
+                    cell = row.CreateCell(icolumn);
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(sNo);
+                    cell.CellStyle = leftAlignedCellStyle;
+                    icolumn = icolumn + 1;
+
+
+                    cell = row.CreateCell(icolumn);
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(dr.studentRegisterNo);
+                    cell.CellStyle = leftAlignedCellStyle;
+                    icolumn = icolumn + 1;
+
+
+                    cell = row.CreateCell(icolumn);
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(dr.StudentName);
+                    cell.CellStyle = leftAlignedCellStyle;
+                    icolumn = icolumn + 1;
+
+
+
+
+                    cell = row.CreateCell(icolumn);
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(dr.YearName);
+                    cell.CellStyle = leftAlignedCellStyle;
+                    icolumn = icolumn + 1;
+
+
+                    cell = row.CreateCell(icolumn);
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(dr.SectionName);
+                    cell.CellStyle = leftAlignedCellStyle;
+                    icolumn = icolumn + 1;
+
+
+                    cell = row.CreateCell(icolumn);
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(dr.strPGPA);
+                    cell.CellStyle = leftAlignedCellStyle;
+                    icolumn = icolumn + 1;
+
+
+                    cell = row.CreateCell(icolumn);
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(dr.strCGPA);
+                    cell.CellStyle = leftAlignedCellStyle;
+                    icolumn = icolumn + 1;
+
+
+                    cell = row.CreateCell(icolumn);
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(dr.strTotalArrear);
+                    cell.CellStyle = leftAlignedCellStyle;
+                    icolumn = icolumn + 1;
+
+
+                    cell = row.CreateCell(icolumn);
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(dr.HistoryOfArrear.ToString());
+                    cell.CellStyle = leftAlignedCellStyle;
+                    icolumn = icolumn + 1;
+
+
+                    sNo++;
+
+                }
+
+
+
+                // Auto-size each column
+                for (var i = 0; i < sheet.GetRow(8).LastCellNum; i++)
+                {
+                    sheet.AutoSizeColumn(i);
+
+                    // Bump up with auto-sized column width to account for bold headers
+                    sheet.SetColumnWidth(i, sheet.GetColumnWidth(i) + 1024);
+                }
+
+
+                //  MemoryStream output = new MemoryStream();
+                workbook.Write(output);
+                return output;
+
+                //Write the workbook to a memory stream
+
+                //workbook.Write(output);
+                //return output.ToArray();
+
+            }
+            catch (Exception ex)
+            {
+                StudentPortal.Models.Utilities.AddErrorLog("Error in EXCEL", "DailyLeaveReport", StudentPortal.Models.Utilities.ErrorLogSeverity.Error, ex);
+                //return output.ToArray();
+                throw ex;
+
+            }
+
+
+        }
+
+
+
+
+[HttpPost]
+        public ActionResult FeesPermissionReport(ClsStudentInformation model, string AcademicYearId, string[] nmBranch_Id, string[] nmYearOfStudy_Id, string[] nmPermissionIdFor)
+        {
+            List<ClsStudentInformation> lstPermissionStudents = new List<ClsStudentInformation>();
+            //List<ClsStudentInformation> lstFeeStudents = new List<ClsStudentInformation>();
+            //List<ClsStudentInformation> lstOthersStudents = new List<ClsStudentInformation>();
+            MemoryStream objMem = new MemoryStream();
+            DataTable dt = new DataTable();
+            byte[] byteExport = new byte[0];
+
+            try
+            {
+                using (SAMYOGEntities dbcontext = new SAMYOGEntities())
+                {
+                    if (model.PermissionFor == "Fees")
+                    {
+                        lstPermissionStudents = GetFeesPermissionReport(model, AcademicYearId, nmBranch_Id, nmYearOfStudy_Id);
+                    }
+                    else if (model.PermissionFor == "Others")
+                    {
+                        lstPermissionStudents = GetStudentRequestReport(model, AcademicYearId, nmBranch_Id, nmYearOfStudy_Id);
+                    }
+
+                    //if (nmPermissionIdFor.Contains("Fees"))
+                    //{
+                    //    lstFeeStudents = GetFeesPermissionReport(model, AcademicYearId, nmBranch_Id, nmYearOfStudy_Id);
+                    //}
+
+                    //if (nmPermissionIdFor.Contains("Others"))
+                    //{
+                    //    lstOthersStudents = GetStudentRequestReport(model, AcademicYearId, nmBranch_Id, nmYearOfStudy_Id);
+                    //}
+
+                    //lstAllStudents.AddRange(lstFeeStudents);
+                    //lstAllStudents.AddRange(lstOthersStudents);
+
+                    byteExport = ToExportFeesPermission(lstPermissionStudents, model.PermissionFor);
+
+                    return File(byteExport, "application/vnd.ms-excel", model.PermissionFor + " Permission Letter.xls");
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return File(byteExport, "application/vnd.ms-excel", "Fees Permission Letter.xls");
+
+            }
+
+        }
+
+
+
+
+
+public byte[] ExportExcelforHostelChallen(long AcademicYearId, long? ProgrammeID, string[] nmBranch_Id, string[] nmSection_Id, string[] nmYearOfStudy_Id)
+        {
+
+            MemoryStream objMem = new MemoryStream();
+            DataTable dt = new DataTable();
+            byte[] byteExport = new byte[0];
+
+            try
+            {
+                dt = GetStudentDetailsList(AcademicYearId, ProgrammeID, nmBranch_Id, nmSection_Id, nmYearOfStudy_Id);
+                byteExport = ToExport(dt, AcademicYearId);
+
+
+                return byteExport;
+            }
+            catch (Exception ex)
+            {
+                return byteExport;
+            }
+        }
+
+
+
+
+
+public MemoryStream GeneratePdfHostelReport(long AcademicYearId, long? ProgrammeID, string[] nmBranch_Id, string[] nmSection_Id, string[] nmYearOfStudy_Id)
+        {
+            MemoryStream objMem = new MemoryStream();
+            return objMem;
+            //ReportDocument report = new ReportDocument();
+
+            //string filename = "HostelChallanReport";
+            //try
+            //{
+
+            //    // initialize logOn Details
+            //    InitializeReport();
+
+            //    string strRptPath = System.Web.HttpContext.Current.Server.MapPath("~/") + "CrystalReports\\" + "rptHostelChallanReport.rpt";
+
+            //    report.Load(strRptPath);
+            //    report.DataDefinition.FormulaFields["f_Serverpath"].Text = "'" + Convert.ToString(System.Web.HttpContext.Current.Server.MapPath("~/")) + "'";
+
+            //    string strYearOfStudy = string.Join(",", nmYearOfStudy_Id);
+            //    string strBranch = string.Join(",", nmBranch_Id);
+            //    string strSection = string.Join(",", nmSection_Id);
+
+            //    report.SetParameterValue("@pAcademicYearId", AcademicYearId);
+            //    report.SetParameterValue("@plstYearId", strYearOfStudy);
+            //    report.SetParameterValue("@plstBranchId", strBranch);
+            //    //report.SetParameterValue("@plstSemesterId", string.Join(",", ProgrammeID));
+            //    report.SetParameterValue("@plstSectionId", strSection);
+
+            //    //report.SetParameterValue("@plstSectionId", string.Join(",", nmSection_Id));//Convert.ToString(Section_Id));
+
+
+
+
+            //    CrTables = report.Database.Tables;
+            //    foreach (CrystalDecisions.CrystalReports.Engine.Table CrTable in CrTables)
+            //    {
+            //        crtableLogoninfo = CrTable.LogOnInfo;
+            //        crtableLogoninfo.ConnectionInfo = crConnectionInfo;
+            //        CrTable.ApplyLogOnInfo(crtableLogoninfo);
+            //    }
+
+
+            //    //report.ExportToHttpResponse(ExportFormatType.PortableDocFormat,
+            //    //       System.Web.HttpContext.Current.Response, false, filename);
+
+
+            //    //foreach (CrystalDecisions.CrystalReports.Engine.Table CrTable in CrTables)
+            //    //{
+
+            //    //    crtableLogoninfo = CrTable.LogOnInfo;
+            //    //    crtableLogoninfo.ConnectionInfo = crConnectionInfo;
+            //    //    CrTable.ApplyLogOnInfo(crtableLogoninfo);
+            //    //}
+
+
+            //    CopyStream(report.ExportToStream(CrystalDecisions.Shared.ExportFormatType.PortableDocFormat), objMem);
+
+            //    return objMem;
+
+            //}
+            //catch (Exception ex)
+            //{
+            //    StudentPortal.Models.Utilities.AddErrorLog("Error in Topdf", "HostelChallanReport", StudentPortal.Models.Utilities.ErrorLogSeverity.Error, ex);
+            //    return objMem;
+            //}
+            //finally
+            //{
+            //    report.Close();
+            //    report.Clone();
+            //    report.Dispose();
+
+            //}
+        }
+
+
+public byte[] CGPATopperStudent(List<ClsMarksEntry> lstStudents, ClsMarksEntry objmark, string CGPAAvg)
+        {
+            try
+            {
+
+                Document document = new Document(iTextSharp.text.PageSize.A4, 25, 25, 50, 50);
+                ClsCommon.IsLastPage = false;
+                MemoryStream objMem = new MemoryStream();
+                PdfWriter writer = PdfWriter.GetInstance(document, objMem);
+                Rectangle pagerect = document.PageSize;
+                LengthFixingStream strmpdfdtream = new LengthFixingStream();
+                // Our custom Header and Footer is done using Event Handler
+                TwoColumnHeaderFooter PageEventHandler = new TwoColumnHeaderFooter();
+                writer.PageEvent = PageEventHandler;
+
+                document.Open();
+
+                var FontColour = new BaseColor(254, 157, 112);
+                Font fntNormal = FontFactory.GetFont("Arial", 9);
+
+                Font fntNormalRed = FontFactory.GetFont("Arial", 9, BaseColor.RED);
+                Font fntsuperscriptRed = FontFactory.GetFont("Arial", 5, BaseColor.RED);
+
+                Font fntUnderline = FontFactory.GetFont("Arial", 9, Font.UNDERLINE | Font.BOLD, BaseColor.RED);
+                Font fntBold = FontFactory.GetFont("Arial", 9, Font.BOLD);
+                Font fntHeading = FontFactory.GetFont("Arial", 8, Font.BOLD);
+                Font fntHeadText = new Font(FontFactory.GetFont("Arial Narrow", 14, iTextSharp.text.Font.BOLD, BaseColor.BLACK));
+                Font fntHeadText1 = new Font(FontFactory.GetFont("Arial Narrow", 14, iTextSharp.text.Font.BOLD));
+                Font fntUnderlineBold = FontFactory.GetFont("Arial Narrow", 9, Font.UNDERLINE | Font.BOLD, BaseColor.BLACK);
+                Font fntBoldText = new Font(FontFactory.GetFont("Arial Narrow", 12, iTextSharp.text.Font.BOLD, BaseColor.BLACK));
+                Font fntBaseFont = new Font(FontFactory.GetFont("Arial Narrow", 10, iTextSharp.text.Font.NORMAL, BaseColor.BLACK));
+
+                PdfPTable objMainTable = new PdfPTable(3);
+                objMainTable.DefaultCell.Border = 0;
+                objMainTable.DefaultCell.BorderWidth = 0;
+                objMainTable.SetWidths(new int[3] { 42, 40, 18 });
+                objMainTable.WidthPercentage = 100;
+
+                PdfPTable tblTitle = new PdfPTable(1);
+                tblTitle.DefaultCell.Border = 0;
+                tblTitle.DefaultCell.FixedHeight = 0;
+                tblTitle.DefaultCell.VerticalAlignment = Element.ALIGN_TOP;
+                tblTitle.DefaultCell.HorizontalAlignment = Element.ALIGN_LEFT;
+                tblTitle.DefaultCell.BorderWidth = 0;
+                tblTitle.DefaultCell.BorderColor = BaseColor.WHITE;
+                tblTitle.SetWidths(new int[1] { 600 });
+
+                string strHeaderPath = "";
+                strHeaderPath = Convert.ToString(HttpContext.Session["strInstitutionLogoPath"]);
+                Image imgiTitle = Image.GetInstance(Server.MapPath("~" + strHeaderPath));
+                imgiTitle.ScalePercent(50);
+
+                PdfPCell objTitle = new PdfPCell(imgiTitle, true);
+                objTitle.Border = 0;
+                objTitle.BorderWidth = 0;
+                tblTitle.AddCell(objTitle);
+
+                using (SAMYOGEntities dbcontext = new SAMYOGEntities())
+                {
+                    string branchName = dbcontext.T_CFG_BRANCH.Where(x => x.Branch_Id == objmark.BranchId).Select(p => p.Branch_Name).FirstOrDefault();
+
+
+                    PdfPCell PdfPCellCollegeTitle = new PdfPCell(new Phrase("Department of " + branchName + " \n\n", fntHeadText));
+                    PdfPCellCollegeTitle.Padding = 0;
+                    PdfPCellCollegeTitle.Border = 0;
+                    PdfPCellCollegeTitle.BorderColor = BaseColor.WHITE;
+                    PdfPCellCollegeTitle.HorizontalAlignment = Element.ALIGN_CENTER;
+                    tblTitle.AddCell(PdfPCellCollegeTitle);
+                }
+
+                PdfPCell objtitlecell = new PdfPCell(tblTitle);
+                objtitlecell.Border = 0;
+                objtitlecell.Colspan = 3;
+                objMainTable.AddCell(objtitlecell);
+
+                document.Add(objMainTable);
+
+
+                //PdfPTable objtblStudent = new PdfPTable(3);
+                //objtblStudent.WidthPercentage = 100;
+                //objtblStudent.DefaultCell.Border = 0;
+                //objtblStudent.DefaultCell.BorderWidth = 0;
+                //objtblStudent.DefaultCell.BorderColor = BaseColor.WHITE;
+                //objtblStudent.SetWidths(new int[3] { 300,200,300 });
+
+
+                //PdfPCell objCellStuYear = null;
+                //objCellStuYear = new PdfPCell(new Phrase(new Chunk("Year : " + lstStudents[0].YearName + " [" + lstStudents[0].AccademicBatchName + "]", fntHeading)));
+                //objCellStuYear.Border = 0;
+                //objCellStuYear.BorderColor = BaseColor.WHITE;
+                //objCellStuYear.VerticalAlignment = Element.ALIGN_MIDDLE;
+                //objCellStuYear.HorizontalAlignment = Element.ALIGN_LEFT;
+                //objtblStudent.AddCell(objCellStuYear);
+
+                //PdfPCell objCellStuSection = null;
+                //objCellStuSection = new PdfPCell(new Phrase(new Chunk("Section : " + lstStudents[0].SectionName, fntHeading)));
+                //objCellStuSection.Border = 0;
+                //objCellStuSection.BorderColor = BaseColor.WHITE;
+                //objCellStuSection.VerticalAlignment = Element.ALIGN_MIDDLE;
+                //objCellStuSection.HorizontalAlignment = Element.ALIGN_LEFT;
+                //objtblStudent.AddCell(objCellStuSection);
+
+                //PdfPCell objCellClassAvg = null;
+                //objCellClassAvg = new PdfPCell(new Phrase(new Chunk("Avg CGPA : " + CGPAAvg, fntHeading)));
+                //objCellClassAvg.Border = 0;
+                //objCellClassAvg.BorderColor = BaseColor.WHITE;
+                //objCellClassAvg.VerticalAlignment = Element.ALIGN_MIDDLE;
+                //objCellClassAvg.HorizontalAlignment = Element.ALIGN_LEFT;
+                //objtblStudent.AddCell(objCellClassAvg);
+
+                //document.Add(objtblStudent);
+
+                List<string> columns = new List<string>() { "S.No.", "Student Id", "Registration Number", "Student Name", "CGPA", "PGPA" };
+
+                PdfPTable objtblResult = new PdfPTable(columns.Count());
+                objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                objtblResult.WidthPercentage = 100;
+                float[] widths = new float[columns.Count()];
+                for (int i = 0; i < columns.Count(); i++)
+                {
+
+                    if (i == 0)
+                        widths[i] = 1.5f;
+                    else if (i == 1)
+                    {
+                        widths[i] = 2.0f;
+                    }
+                    else if (i == 2)
+                        widths[i] = 3.5f;
+                    else if (i == 3)
+                        widths[i] = 6.0f;
+                    else
+                    {
+                        widths[i] = 2.5f;
+                    }
+                }
+                objtblResult.SetWidths(widths);
+
+                string sectionName = "";
+                if (objmark.SectionId == 0)
+                    sectionName = "All";
+                else
+                    sectionName = lstStudents[0].SectionName;
+
+                PdfPCell objCellStuYear = null;
+                objCellStuYear = new PdfPCell(new Phrase(new Chunk("Year : " + lstStudents[0].YearName + " [" + lstStudents[0].AccademicBatchName + "]" + "               Section : " + sectionName + " \n\n", fntHeading)));
+                objCellStuYear.Border = 0;
+                objCellStuYear.Colspan = 3;
+                objCellStuYear.BorderColor = BaseColor.WHITE;
+                objCellStuYear.VerticalAlignment = Element.ALIGN_MIDDLE;
+                objCellStuYear.HorizontalAlignment = Element.ALIGN_LEFT;
+                objtblResult.AddCell(objCellStuYear);
+
+                //PdfPCell objCellStuSection = null;
+                //objCellStuSection = new PdfPCell(new Phrase(new Chunk("Section : " + lstStudents[0].SectionName, fntHeading)));
+                //objCellStuSection.Border = 0;
+                //objCellStuSection.BorderColor = BaseColor.WHITE;
+                //objCellStuSection.VerticalAlignment = Element.ALIGN_MIDDLE;
+                //objCellStuSection.HorizontalAlignment = Element.ALIGN_LEFT;
+                //objtblResult.AddCell(objCellStuSection);
+
+                PdfPCell objCellClassAvg = null;
+                objCellClassAvg = new PdfPCell(new Phrase(new Chunk("Avg CGPA : " + CGPAAvg + " \n\n", fntHeading)));
+                objCellClassAvg.Border = 0;
+                objCellClassAvg.Colspan =3;
+                objCellClassAvg.BorderColor = BaseColor.WHITE;
+                objCellClassAvg.VerticalAlignment = Element.ALIGN_MIDDLE;
+                objCellClassAvg.HorizontalAlignment = Element.ALIGN_RIGHT;
+                objtblResult.AddCell(objCellClassAvg);
+
+
+
+                foreach (string col in columns)
+                {
+                    objtblResult.AddCell(new Phrase(col, fntHeading));
+                }
+
+                int SNo = 1;
+                foreach (ClsMarksEntry mark in lstStudents)
+                {
+                    objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    objtblResult.AddCell(new Phrase(SNo.ToString(), fntNormal));
+
+                    objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    objtblResult.AddCell(new Phrase(mark.StudentRoleNo, fntNormal));
+
+                    objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    objtblResult.AddCell(new Phrase(mark.studentRegisterNo, fntNormal));
+
+                    objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_LEFT;
+                    objtblResult.AddCell(new Phrase(mark.StudentName, fntNormal));
+
+                    //objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    //objtblResult.AddCell(new Phrase(mark.YearName, fntNormal));
+
+                    //objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    //objtblResult.AddCell(new Phrase(mark.SectionName, fntNormal));
+
+                  
+
+                    objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    objtblResult.AddCell(new Phrase(mark.strCGPA, fntNormal));
+
+                    objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    objtblResult.AddCell(new Phrase(mark.strPGPA, fntNormal));
+
+                    //objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    //objtblResult.AddCell(new Phrase(mark.strTotalArrear, fntNormal));
+
+                    //objtblResult.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    //objtblResult.AddCell(new Phrase(mark.HistoryOfArrear.ToString(), fntNormal));
+
+                    SNo++;
+                }
+
+                document.Add(objtblResult);
+                var remainingPageSpace = writer.GetVerticalPosition(false) - document.BottomMargin;
+                if (remainingPageSpace < 71)
+                {
+                    document.NewPage();
+                }
+
+                ClsCommon.IsLastPage = true;
+                ClsCommon.ReportFooterText = ClsCommon.ReportFooterText_Portrait_H_P;
+                document.Close();
+                ClsCommon.IsLastPage = false;
+                return objMem.ToArray();
+
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+            finally
+            {
+
+            }
+        }
